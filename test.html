@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Tests</title>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.22/jquery-ui.min.js"></script>
+<script type="text/javascript" src="js/qunit/qunit-1.9.0.js"></script>
+<script type="text/javascript" src="js/underscore.js"></script>
+<script type="text/javascript" src="js/backbone.js"></script>
+<script type="text/javascript" src="js/domain_models.js"></script>
+<style type="text/css">
+	@import "js/qunit/qunit-1.9.0.css";
+</style>
+</head>
+<body>
+  <div id="qunit"></div>
+  <div id="qunit-fixture"></div>
+  <div id="playground"></div>
+ <script>
+test_element_for_text = null;
+module( "text_input", {
+  setup: function() {
+	test_element_for_text = $('<div id="test_element_for_text"></div>');
+	$('#playground').append(test_element_for_text);
+	first_name = new form_input({name: 'First name'});
+	first_name.renderTo(test_element_for_text);
+  }, teardown: function() {
+	test_element_for_text.remove();
+  }
+});
+    test( "Always true", function() {
+	equal(true, true, "true should be true");
+    });
+    test( "We can create a container div", function() {
+	equal($('#playground').children().length, 1, "There should be 1 child of playground");
+    });
+    test( "We can create a text box", function() {
+	equal($('#playground').find('input').length, 1, "There should be 1 input as a child of playground");
+    });
+    test( "We can create a text box with a label", function() {
+	var label  = first_name.get('view').$el.find('label')[0];
+	var jq_label = $(label);
+	equal(jq_label.text(), first_name.get('name'), "The label should contain the name of the model");
+    });
+    test( "Writing to a textbox will change the value of the model", function() {
+	var textbox  = $(first_name.get('view').$el.find('input')[0]);
+	textbox.val('My new value');
+	textbox.change();
+	equal(textbox.val(), first_name.get('value'), "The input should now contain 'My new value'");
+    });
+    test( "Views should return an input element on input() function call", function() {
+	var textbox  = first_name.get('view').input();
+	equal(textbox.tagName, 'INPUT', "Views should return an input element on input() function call");
+    });
+    test( "An input can be dependent on the value of another input", function() {
+	var last_name = new form_input({name: 'Last name', 
+					dependsOn: {
+						"subject": first_name,
+						"comparison": '==',
+						"object": 'Ryan',
+						"display": 'hide'
+						} 
+					});
+	last_name.renderTo(test_element_for_text);
+	var is_visible = $(last_name.get('view').input()).is(":visible");
+	equal(is_visible, false, "condition not met, should not be visible");
+
+	first_name.set('value', 'Ryan');
+	is_visible = $(last_name.get('view').input()).is(":visible");
+	equal(is_visible, true, "condition now met, should be visible");
+	$(last_name.get('view').input()).remove();
+    });
+    test( "An input can be disabled unless a dependency is met", function() {
+	var last_name = new form_input({name: 'Last name', 
+					dependsOn: {
+						"subject": first_name,
+						"comparison": '==',
+						"object": 'Ryan',
+						"display": 'lock'
+						} 
+					});
+	last_name.renderTo(test_element_for_text);
+	var is_visible = $(last_name.get('view').input()).is(":visible");
+	equal(is_visible, true, "condition not met, should be visible");
+
+	var is_locked = $(last_name.get('view').input()).attr('disabled') == 'disabled';
+	equal(is_locked, true, "condition not met, should be locked");
+
+	first_name.set('value', 'Ryan');
+	is_locked = $(last_name.get('view').input()).attr('disabled') == 'disabled';
+	equal(is_locked, false, "condition now met, should be unlocked");
+	$(last_name.get('view').input()).remove();
+    });
+  </script>
+        
+</body>
+</html>
