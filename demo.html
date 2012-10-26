@@ -13,8 +13,8 @@
   <div id="playground"></div>
  <script>
   $(document).ready( function() {
-	first_name = new form_input({name: "First Name"});
-	last_name = new form_input({name: "Last Name",
+	first_name = new FormInput({name: "First Name"});
+	last_name = new FormInput({name: "Last Name",
 				dependsOn:  {
 					"subject": first_name,
 					"comparison": "==",

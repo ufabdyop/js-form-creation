@@ -17,7 +17,7 @@ var null_form_condition = Backbone.Model.extend({
 
 var form_condition = Backbone.Model.extend({
 	defaults: {
-		"subject": new null_input_model(),    //a form_input
+		"subject": new null_input_model(),    //a FormInput
 		"comparison": "==", // '==', '!=', '<', '>', etc.
 		"object": null,     //probably a string
 		"required": false,  //should the caller be required if comparison is true?
@@ -53,20 +53,22 @@ var form_condition = Backbone.Model.extend({
 /**
  * form input
  */
-var form_input = Backbone.Model.extend({
+var FormInput = Backbone.Model.extend({
 	defaults: {
 		id: false,
 		long_label: false,
 		type: 'text',
 		name: '',
-		english_name: '',
+		label: '',
 		form: null,
 		fieldset: null,
 		value: '',
 		options: [],
 		default_value: '', 
 		view: null,
-		dependsOn: new null_form_condition()	
+		dependsOn: new null_form_condition()	,
+		disabled: false,
+		hidden: false
 	},
 	initialize: function(attributes) {
 		var array_version = this.get('dependsOn');
@@ -96,7 +98,7 @@ var templates = {
  * ------------------------------------------------
  */
     var input_view = Backbone.View.extend({
-        model: form_input,
+        model: FormInput,
         tagName: 'div',
         template: null,
         initialize: function(attributes) {
