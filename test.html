@@ -55,11 +55,10 @@ module( "text_input", {
     });
     test( "An input can be dependent on the value of another input", function() {
 	var last_name = new FormInput({name: 'Last name', 
-					dependsOn: {
-						"subject": first_name,
-						"comparison": '==',
-						"object": 'Ryan',
-						"display": 'hide'
+					"dependencyCondition": {
+						"field": first_name,
+						"operator": '==',
+						"value": 'Ryan'
 						} 
 					});
 	last_name.renderTo(test_element_for_text);
@@ -72,13 +71,12 @@ module( "text_input", {
 	$(last_name.get('view').input()).remove();
     });
     test( "An input can be disabled unless a dependency is met", function() {
-	var last_name = new FormInput({name: 'Last name', 
-					dependsOn: {
-						"subject": first_name,
-						"comparison": '==',
-						"object": 'Ryan',
-						"display": 'lock'
-						} 
+	var last_name = new FormInput( {"name": 'Last name', "disabled": true,
+					"dependencyCondition": {
+						"field": first_name,
+						"operator": '==',
+						"value": 'Ryan'
+						}
 					});
 	last_name.renderTo(test_element_for_text);
 	var is_visible = $(last_name.get('view').input()).is(":visible");
@@ -96,6 +94,22 @@ module( "text_input", {
 	first_name.set('hidden', true);
 	var is_visible  = first_name.get('view').$el.is(':visible');
 	equal(is_visible, false);
+    });
+    test( "If an input model has attribute 'disabled' set to true, view should be disabled", function() {
+	first_name.set('disabled', true)
+	var disabled  = first_name.get('view').$input().attr('disabled') ;
+	equal(disabled, 'disabled');
+    });
+    test( "Radio inputs are supported", function() {
+	var size = new FormInput({name: "Size", type: "radio", 
+				options: {
+					"s": "Small",
+					"m": "Medium",
+					"l": "Large"
+					} 
+				});
+	size.renderTo(test_element_for_text);
+	equal( size.get('view').$input().attr("type"), "radio", "radio input type exists");
     });
   </script>
         

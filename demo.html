@@ -12,17 +12,28 @@
 <body>
   <div id="playground"></div>
  <script>
+	foo = function() {
+		alert('bar');
+	}
   $(document).ready( function() {
 	first_name = new FormInput({name: "First Name"});
-	last_name = new FormInput({name: "Last Name",
-				dependsOn:  {
-					"subject": first_name,
-					"comparison": "==",
-					"object": "Ryan",
-					"display": "lock"
+	last_name = new FormInput({name: "Last Name", "disabled" : true,
+				"dependencyCondition":  {
+					"field": first_name,
+					"operator": "==",
+					"value": "Ryan"
 					} });
+	nice_person = new FormInput({name: "Nice Person", type: "checkbox"});
+	size = new FormInput({name: "Size", type: "radio", 
+				options: {
+					"s": "Small",
+					"m": "Medium",
+					"l": "Large"
+					}  });
 	first_name.renderTo($("#playground"));
 	last_name.renderTo($("#playground"));
+	nice_person.renderTo($("#playground"));
+	size.renderTo($("#playground"));
   } );
 
   </script>

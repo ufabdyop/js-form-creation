@@ -3,50 +3,36 @@
  * ----------------------------------------------------------------
  * 
  */
-var null_input_model = Backbone.Model.extend({
+var NullInputModel = Backbone.Model.extend({
 			defaults: {} 
 		});
 
 //a simple wrapper type of object that always shows the dependent input
-var null_form_condition = Backbone.Model.extend({
-			defaults: { "subject" : new null_input_model() } ,
-			evaluate: function(dependent) {
-				dependent.show();
+var NullFormCondition = Backbone.Model.extend({
+			defaults: { "field" : new NullInputModel() } ,
+			evaluate: function(model, successfulValidation, unsuccessfulValidation) {
+				return true;
 			}
 		});
 
-var form_condition = Backbone.Model.extend({
+var FormCondition = Backbone.Model.extend({
 	defaults: {
-		"subject": new null_input_model(),    //a FormInput
-		"comparison": "==", // '==', '!=', '<', '>', etc.
-		"object": null,     //probably a string
-		"required": false,  //should the caller be required if comparison is true?
-		"display": "hide",  //display mode: hide or lock (just like jformer)
+		"field": new NullInputModel(),    //a FormInput
+		"operator": "==", // '==', '!=', '<', '>', etc.
+		"value": null     //probably a string
 	},
-	
-	//dependent needs to have show, hide, lock, unlock methods
-	evaluate: function(dependent) {
-		var sub = this.get('subject').get('value');
-		var comp = this.get('comparison');
-		var obj = this.get('object'); 
+	evaluate: function(model, successfulValidation, unsuccessfulValidation) {
+		var sub = this.get('field').get('value');
+		var comp = this.get('operator');
+		var obj = this.get('value'); 
 		var evaluation_string = 'sub ' + comp + ' obj' ;
 		var should_be_shown = eval( evaluation_string );
-		var mode = this.get('display');
-		if (should_be_shown == true) {
-			if (mode == 'hide') {
-				dependent.show();
-			}
-			if (mode == 'lock') {
-				dependent.unlock();
-			}
+		if (should_be_shown) {
+			successfulValidation(model);
 		} else {
-			if (mode == 'hide') {
-				dependent.hide();
-			}
-			if (mode == 'lock') {
-				dependent.lock();
-			}
+			unsuccessfulValidation(model);
 		}
+		return should_be_shown;	
 	}
 });
 
@@ -55,29 +41,73 @@ var form_condition = Backbone.Model.extend({
  */
 var FormInput = Backbone.Model.extend({
 	defaults: {
-		id: false,
-		long_label: false,
-		type: 'text',
-		name: '',
-		label: '',
-		form: null,
-		fieldset: null,
-		value: '',
-		options: [],
-		default_value: '', 
-		view: null,
-		dependsOn: new null_form_condition()	,
-		disabled: false,
-		hidden: false
+		"id": false,
+		"long_label": false,
+		"type": 'text',
+		"name": '',
+		"label": '',
+		"form": null,
+		"fieldset": null,
+		"value": '',
+		"options": {},
+		"default_value": '', 
+		"view": null,
+		"dependencyCondition": null,
+		"dependencySatisfiedCallback": null,
+		"dependencyNotSatisfiedCallback": null,
+		"disabled": false,
+		"hidden": false
 	},
 	initialize: function(attributes) {
-		var array_version = this.get('dependsOn');
-		this.set('dependsOn', new form_condition(array_version));
+		var condition = this.get('dependencyCondition');
+		if (condition == null) {
+			this.set('dependencyCondition', new NullFormCondition());
+		} else {
+			this.set('dependencyCondition', new FormCondition(condition));
+		}
 	},
 	renderTo: function(element) {
-		var view = new input_view({model: this, element: element});
-		this.set('view', view);
-		this.get('dependsOn').get('subject').on('input change', view.render, view);
+		this.set('view', new input_view({model: this, element: element}));
+		this.get('dependencyCondition').get('field').on('change', this.isDependencySatisfied, this);
+		this.initializeCallbacks();
+		this.isDependencySatisfied();
+	},
+	//if callbacks are not explicitly set for dependencies, use some reasonable defaults
+	initializeCallbacks: function() {
+		if (this.get('dependencySatisfiedCallback') == null) {
+			if (this.get('disabled') ) {
+				this.set('dependencySatisfiedCallback', this.enable);
+			} else {
+				this.set('dependencySatisfiedCallback', this.show);
+			}
+		}
+		if (this.get('dependencyNotSatisfiedCallback') == null) {
+			if (this.get('disabled') ) {
+				this.set('dependencyNotSatisfiedCallback', this.disable);
+			} else {
+				this.set('dependencyNotSatisfiedCallback', this.hide);
+			}
+		}
+	},
+	enable: function (model) {
+		model.get('view').unlock();
+	},
+	disable: function (model) {
+		model.get('view').lock();
+	},
+	show: function (model) {
+		model.get('view').show();
+	},
+	hide: function (model) {
+		model.get('view').hide();
+	},
+	isDependencySatisfied: function() {
+		var dependency = this.get('dependencyCondition');
+		dependency.evaluate(
+			this, 
+			this.get('dependencySatisfiedCallback'), 
+			this.get('dependencyNotSatisfiedCallback')
+		);
 	}
 });
 
@@ -87,11 +117,30 @@ var FormInput = Backbone.Model.extend({
  *
  * */
 var templates = { 
-			text:  _.template('<div class="text_input" id="container_for_<%=id%>"> \n' + 
+			"text":  _.template('<div class="text_input" id="container_for_<%=id%>"> \n' + 
 					'<label for="<%=id %>"><%=name %><input type="text" value="<%=value%>" name="<%=name %>" id="text_<%=id %>"/></label> \n' +
-				'</div>\n')
+				'</div>\n'),
+			"radio":  function (data) { 
+					var buffer = (option_templates["radio"](data['options']));
+					buffer = '<div class="text_input" id="container_for_<%=id%>"> \n' + buffer + '</div> \n';
+					return (_.template(buffer))(data);
+				},
+			"checkbox":  _.template('<div class="checkbox_input" id="container_for_<%=id%>"> \n' + 
+					'<input type="checkbox" value="<%=value%>" name="<%=name %>" id="text_<%=id %>"/><label for="<%=id %>"><%=name %></label> \n' +
+				'</div>\n') 
 		};
 
+var option_templates = {
+			"radio":  function (options) {
+					var buffer = "";
+					var iterator = 0;
+					for( var value in options ) {
+						buffer += '<input type="radio" value="' + value + '" name="<%=name %>" id="text_<%=id %>_' + iterator + '"/><label for="text_<%=id %>_' + iterator + '">' + options[value] + '</label> \n'
+						iterator++;
+					}
+					return buffer;
+				}  
+	}
 
 /**
  * VIEWS:
@@ -114,10 +163,20 @@ var templates = {
             var markup = this.template({
                                         id: this.model.get('id'),
                                         value: this.model.get('value'),
+                                        options: this.model.get('options'),
                                         name: this.model.get('name')
                                     });
 	    this.$el.html(markup);
-	    this.model.get('dependsOn').evaluate(this);
+	    if (this.model.get('hidden')) {
+		this.hide();
+	    } else {
+		this.show();
+	    }
+	    if (this.model.get('disabled')) {
+		this.lock();
+	    } else {	
+		this.unlock();
+	    }
         },
 	$input: function() {
 		return $(this.input());
@@ -129,9 +188,9 @@ var templates = {
 		this.unlock();
 		this.$el.show();
 	},
-	hide: function() {
+	hide: function(callback) {
 		this.lock();
-		this.$el.hide();
+		this.$el.hide(0, callback);
 	},
 	lock: function() {
 		this.$input().attr('disabled', 'true');
