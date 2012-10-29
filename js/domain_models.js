@@ -121,21 +121,54 @@ var templates = {
 					'<label for="<%=id %>"><%=name %><input type="text" value="<%=value%>" name="<%=name %>" id="text_<%=id %>"/></label> \n' +
 				'</div>\n'),
 			"radio":  function (data) { 
-					var buffer = (option_templates["radio"](data['options']));
+					var buffer = (option_templates["radio"](data['options'], data['value']));
 					buffer = '<div class="text_input" id="container_for_<%=id%>"> \n' + buffer + '</div> \n';
 					return (_.template(buffer))(data);
 				},
-			"checkbox":  _.template('<div class="checkbox_input" id="container_for_<%=id%>"> \n' + 
-					'<input type="checkbox" value="<%=value%>" name="<%=name %>" id="text_<%=id %>"/><label for="<%=id %>"><%=name %></label> \n' +
-				'</div>\n') 
+			"select":  function (data) { 
+					var buffer = (option_templates["select"](data['options'], data['value']));
+					buffer = '<div class="select_input" id="container_for_<%=id%>"><select name="<%=name %>" id="select_<%=id %>">\n' + buffer + '</select></div> \n';
+					return (_.template(buffer))(data);
+				},
+			"checkbox":  function(data) {	
+				var checked_string = '';
+				if ('value' in data) {
+					if (data['value']) {	
+						checked_string = ' checked';
+					}
+				}
+				var buffer = '<div class="checkbox_input" id="container_for_<%=id%>"> \n' + 
+					'<input type="checkbox" ' + checked_string + ' value="<%=value%>" name="<%=name %>" id="checkbox_<%=id %>"/><label for="checkbox_<%=id %>"><%=name %></label> \n' +
+					'</div>\n';
+				return (_.template(buffer))(data)
+			} 
 		};
 
 var option_templates = {
-			"radio":  function (options) {
+			"select":  function (options, val) {
 					var buffer = "";
 					var iterator = 0;
+					var selected_text = '';
 					for( var value in options ) {
-						buffer += '<input type="radio" value="' + value + '" name="<%=name %>" id="text_<%=id %>_' + iterator + '"/><label for="text_<%=id %>_' + iterator + '">' + options[value] + '</label> \n'
+						selected_text = '';
+						if (value == val) {
+							selected_text = ' selected';
+						}
+						buffer += '<option name="<%=name %>" id="select_<%=id %>_' + iterator + '" value="' + value + '"' + selected_text + '>' + options[value] + '</option> \n'
+						iterator++;
+					}
+					return buffer;
+				},
+			"radio":  function (options, val) {
+					var buffer = "";
+					var iterator = 0;
+					var selected_text = '';
+					for( var value in options ) {
+						selected_text = '';
+						if (value == val) {
+							selected_text = ' checked';
+						}
+						buffer += '<input type="radio" value="' + value + '" name="<%=name %>" id="radio_<%=id %>_' + iterator + '"' + selected_text + '/><label for="radio_<%=id %>_' + iterator + '">' + options[value] + '</label> \n'
 						iterator++;
 					}
 					return buffer;
@@ -150,6 +183,7 @@ var option_templates = {
         model: FormInput,
         tagName: 'div',
         template: null,
+        input_selector: 'input',
         initialize: function(attributes) {
           this.model.on('change', this.render, this);
 
@@ -158,7 +192,20 @@ var option_templates = {
 
           $(attributes.element).append(this.el);
           this.render();  
+	  this.set_input_selector();
         },
+	set_input_selector: function() {
+	  var model_type = this.model.get('type');
+	  if (model_type == 'radio') {
+		this.input_selector = 'input[checked=checked]';
+	  } else if (model_type == 'select') {
+		this.input_selector = 'select';
+	  } else if(model_type == 'checkbox') {	
+		this.input_selector = 'input:checked';
+	  } else {
+		this.input_selector = 'input';
+	  }
+	},
         render: function() {
             var markup = this.template({
                                         id: this.model.get('id'),
@@ -182,7 +229,14 @@ var option_templates = {
 		return $(this.input());
 	},
 	input: function() {
-		return this.$el.find('input')[0];
+		var selector = this.input_selector;
+		return this.$el.find(selector)[0];
+	},
+	value: function() {
+		if (this.model.get('type') == 'checkbox') {
+			return this.$input().is(":checked");
+		}
+		return this.$input().val();
 	},
 	show: function() {
 		this.unlock();
@@ -200,10 +254,11 @@ var option_templates = {
 	},
 	update_model: function() {
 		this.model.off('change', this.render, this);
-		this.model.set('value', this.$el.find('input').first().val());
+		this.model.set('value', this.value());
 		this.model.on('change', this.render, this);
 	},
 	events: {
+		"change select" : "update_model",
 		"change input" : "update_model",
 		"keyup input" : "update_model"
 	}

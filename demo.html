@@ -23,8 +23,13 @@
 					"operator": "==",
 					"value": "Ryan"
 					} });
-	nice_person = new FormInput({name: "Nice Person", type: "checkbox"});
-	size = new FormInput({name: "Size", type: "radio", 
+	nice_person = new FormInput({name: "Nice Person", type: "checkbox", value: true});
+	size = new FormInput({name: "Size", type: "select", 
+				dependencyCondition: {	
+					"field": nice_person,
+					"operator": "==",
+					"value": true
+				},
 				options: {
 					"s": "Small",
 					"m": "Medium",

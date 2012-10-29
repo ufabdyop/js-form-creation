@@ -100,6 +100,16 @@ module( "text_input", {
 	var disabled  = first_name.get('view').$input().attr('disabled') ;
 	equal(disabled, 'disabled');
     });
+    test( "Checkbox inputs are supported", function() {
+	nice_person = new FormInput({name: "Nice Person", type: "checkbox", value: true});
+	nice_person.renderTo(test_element_for_text);
+	equal( $(nice_person.get('view').$el.find('input')[0]).attr("type"), "checkbox", "checkbox input type exists");
+    });
+    test( "Checkbox model renders checked checkbox if true", function() {
+	nice_person = new FormInput({name: "Nice Person", type: "checkbox", value: true});
+	nice_person.renderTo(test_element_for_text);
+	equal( $(nice_person.get('view').$el.find('input')[0]).is(":checked"), true, "checkbox model has a value of true, so should be checked");
+    });
     test( "Radio inputs are supported", function() {
 	var size = new FormInput({name: "Size", type: "radio", 
 				options: {
@@ -109,7 +119,70 @@ module( "text_input", {
 					} 
 				});
 	size.renderTo(test_element_for_text);
-	equal( size.get('view').$input().attr("type"), "radio", "radio input type exists");
+	equal( $(size.get('view').$el.find('input')[0]).attr("type"), "radio", "radio input type exists");
+    });
+    test( "Radio input changes update model values", function() {
+	var size = new FormInput({name: "Size", type: "radio", 
+				options: {
+					"s": "Small",
+					"m": "Medium",
+					"l": "Large"
+					} 
+				});
+	size.renderTo(test_element_for_text);
+	$(size.get('view').$el.find('input')[1]).attr('checked', true)
+	$(size.get('view').$el.find('input')[1]).change();
+	equal( size.get('value'), 'm');
+    });
+    test( "Radio model changes, this should update the view", function() {
+	var size = new FormInput({name: "Size", type: "radio", 
+				options: {
+					"s": "Small",
+					"m": "Medium",
+					"l": "Large"
+					} 
+				});
+	size.renderTo(test_element_for_text);
+	size.set('value', 'm');
+	var is_medium = $(size.get('view').$el.find('input')[1]).attr('checked')
+	equal( is_medium, 'checked' );
+    });
+    test( "SELECT with OPTIONS is supported", function() {
+	var size = new FormInput({name: "Size", type: "select", 
+				options: {
+					"s": "Small",
+					"m": "Medium",
+					"l": "Large"
+					} 
+				});
+	size.renderTo(test_element_for_text);
+	equal( size.get('view').input().tagName, 'SELECT');
+	});
+    test( "select changes update model values", function() {
+	var size = new FormInput({name: "Size", type: "select", 
+				options: {
+					"s": "Small",
+					"m": "Medium",
+					"l": "Large"
+					} 
+				});
+	size.renderTo(test_element_for_text);
+	$(size.get('view').$el.find('option')[1]).attr('selected', true)
+	$(size.get('view').$el.find('select')[0]).change();
+	equal( size.get('value'), 'm');
+    });
+    test( "when select model changes, the view updates", function() {
+	var size = new FormInput({name: "Size", type: "select", 
+				options: {
+					"s": "Small",
+					"m": "Medium",
+					"l": "Large"
+					} 
+				});
+	size.renderTo(test_element_for_text);
+	size.set('value', 'm');
+	var selected = $(size.get('view').$el.find('option')[1]).attr('selected')
+	equal( selected, 'selected');
     });
   </script>
         
