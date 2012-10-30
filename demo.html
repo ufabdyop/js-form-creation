@@ -35,10 +35,12 @@
 					"m": "Medium",
 					"l": "Large"
 					}  });
-	first_name.renderTo($("#playground"));
-	last_name.renderTo($("#playground"));
-	nice_person.renderTo($("#playground"));
-	size.renderTo($("#playground"));
+	var description = new FormFieldset({name: 'Description'});
+	description.addInput(first_name);
+	description.addInput(last_name);
+	description.addInput(nice_person);
+	description.addInput(size);
+	description.renderTo($('#playground'));
   } );
 
   </script>

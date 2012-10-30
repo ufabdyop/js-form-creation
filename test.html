@@ -184,6 +184,31 @@ module( "text_input", {
 	var selected = $(size.get('view').$el.find('option')[1]).attr('selected')
 	equal( selected, 'selected');
     });
+module( "fieldset", {
+  setup: function() {
+	test_element_for_text = $('<div id="test_element_for_text"></div>');
+	$('#playground').append(test_element_for_text);
+	first_name = new FormInput({name: 'First name'});
+	first_name.renderTo(test_element_for_text);
+  }, teardown: function() {
+	test_element_for_text.remove();
+  }
+});
+    test( "fieldsets exist", function() {
+	var test_fieldset = new FormFieldset({name: "test field set"});
+	equal(true, true, "No exception was raised");	
+    });
+    test( "fieldsets can contain inputs", function() {
+	var test_fieldset = new FormFieldset({name: "test field set"});
+	test_fieldset.addInput(first_name);
+	equal(true, true, "No exception was raised");	
+    });
+    test( "fieldsets can render inputs", function() {
+	var test_fieldset = new FormFieldset({name: "test field set"});
+	test_fieldset.addInput(first_name);
+	test_fieldset.renderTo('#playground');
+	equal(true, true, "No exception was raised");	
+    });
   </script>
         
 </body>

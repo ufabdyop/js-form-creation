@@ -36,6 +36,7 @@ var FormCondition = Backbone.Model.extend({
 	}
 });
 
+var FormInputIdIterator = 1;
 /**
  * form input
  */
@@ -64,6 +65,9 @@ var FormInput = Backbone.Model.extend({
 			this.set('dependencyCondition', new NullFormCondition());
 		} else {
 			this.set('dependencyCondition', new FormCondition(condition));
+		}
+		if (attributes.id == false) {
+			this.set('id', 'FormInputField_' + FormInputIdIterator++);
 		}
 	},
 	renderTo: function(element) {
@@ -174,6 +178,43 @@ var option_templates = {
 					return buffer;
 				}  
 	}
+
+var FormFieldset = Backbone.Model.extend({
+	defaults: {
+		name: null,
+		collection: null
+		},
+	initialize: function(attributes) {
+		if (attributes.collection == null) {
+			this.set('collection', new FieldsetCollection());
+		}		
+	},
+	addInput: function(input) {
+		this.get('collection').add(input);
+	}, 
+	renderTo: function(element) {	
+		this.view = new fieldset_view({model: this, element: element});
+		this.view.render();
+	}
+});
+
+var FieldsetCollection = Backbone.Collection.extend({ model: FormInput });
+
+    var fieldset_view = Backbone.View.extend({
+        model: FormFieldset,
+        tagName: 'fieldset',
+	initialize: function(attributes) {
+		$(attributes.element).append(this.el);
+		attributes.model.on('change', this.render, this);
+	},
+	render: function() {
+		this.$el.html('<legend>' + this.model.get('name') + '</legend>');
+		var render_to = this.el;
+		this.model.get('collection').each(function(input, var2, var3) {
+			input.renderTo(render_to);		
+		});
+	}
+	});
 
 /**
  * VIEWS:
