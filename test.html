@@ -206,8 +206,18 @@ module( "fieldset", {
     test( "fieldsets can render inputs", function() {
 	var test_fieldset = new FormFieldset({name: "test field set"});
 	test_fieldset.addInput(first_name);
-	test_fieldset.renderTo('#playground');
+	test_fieldset.renderTo('#test_element_for_text');
 	equal(true, true, "No exception was raised");	
+    });
+    test( "forms can render inputs", function() {
+	var test_fieldset = new FormFieldset({name: "test field set"});
+	test_fieldset.addInput(first_name);
+	var test_form = new Form({name: "test form", action: "action"});
+	test_form.addInput(test_fieldset);
+	test_form.renderTo('#test_element_for_text');
+	equal(true, true, "No exception was raised");	
+    });
+    test( "wizard can use a form for gathering input", function() {
     });
   </script>
         

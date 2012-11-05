@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <title>Demo</title>
+<link href="css/basic.css" rel="stylesheet">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.22/jquery-ui.min.js"></script>
 <script type="text/javascript" src="js/underscore.js"></script>
@@ -31,16 +32,23 @@
 					"value": true
 				},
 				options: {
+					"": "",
 					"s": "Small",
 					"m": "Medium",
 					"l": "Large"
-					}  });
+					}  
+				});
 	var description = new FormFieldset({name: 'Description'});
-	description.addInput(first_name);
-	description.addInput(last_name);
-	description.addInput(nice_person);
-	description.addInput(size);
-	description.renderTo($('#playground'));
+	description.addInput([first_name, last_name, nice_person, size]);
+	var form = new Form({action: "google.com"});
+	form.addInput(description);
+	form.renderTo($('#playground'));
+
+	address = new FormInput({name: "Address"});
+	phone = new FormInput({name: "Phone"});
+	var contact = new FormFieldset({name: 'Contact Info'});
+	contact.addInput([address, phone]);
+	form.addInput(contact);
   } );
 
   </script>

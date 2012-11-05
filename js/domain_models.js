@@ -122,7 +122,7 @@ var FormInput = Backbone.Model.extend({
  * */
 var templates = { 
 			"text":  _.template('<div class="text_input" id="container_for_<%=id%>"> \n' + 
-					'<label for="<%=id %>"><%=name %><input type="text" value="<%=value%>" name="<%=name %>" id="text_<%=id %>"/></label> \n' +
+					'<label for="text_<%=id %>"><%=name %></label><input type="text" value="<%=value%>" name="<%=name %>" id="text_<%=id %>"/> \n' +
 				'</div>\n'),
 			"radio":  function (data) { 
 					var buffer = (option_templates["radio"](data['options'], data['value']));
@@ -142,7 +142,7 @@ var templates = {
 					}
 				}
 				var buffer = '<div class="checkbox_input" id="container_for_<%=id%>"> \n' + 
-					'<input type="checkbox" ' + checked_string + ' value="<%=value%>" name="<%=name %>" id="checkbox_<%=id %>"/><label for="checkbox_<%=id %>"><%=name %></label> \n' +
+					'<label for="checkbox_<%=id %>"><input type="checkbox" ' + checked_string + ' value="<%=value%>" name="<%=name %>" id="checkbox_<%=id %>"/><%=name %></label> \n' +
 					'</div>\n';
 				return (_.template(buffer))(data)
 			} 
@@ -186,35 +186,41 @@ var FormFieldset = Backbone.Model.extend({
 		},
 	initialize: function(attributes) {
 		if (attributes.collection == null) {
-			this.set('collection', new FieldsetCollection());
+			this.set('collection', new FormInputCollection());
 		}		
 	},
 	addInput: function(input) {
 		this.get('collection').add(input);
 	}, 
 	renderTo: function(element) {	
-		this.view = new fieldset_view({model: this, element: element});
+		this.view = new fieldsetView({model: this, element: element});
 		this.view.render();
 	}
 });
 
-var FieldsetCollection = Backbone.Collection.extend({ model: FormInput });
+var FormInputCollection = Backbone.Collection.extend({ model: FormInput });
 
-    var fieldset_view = Backbone.View.extend({
-        model: FormFieldset,
-        tagName: 'fieldset',
-	initialize: function(attributes) {
-		$(attributes.element).append(this.el);
-		attributes.model.on('change', this.render, this);
+var Form = Backbone.Model.extend({
+	defaults: {
+		action: null,
+		name: "",
+		method: "post",
+		wizard_style: false
 	},
-	render: function() {
-		this.$el.html('<legend>' + this.model.get('name') + '</legend>');
-		var render_to = this.el;
-		this.model.get('collection').each(function(input, var2, var3) {
-			input.renderTo(render_to);		
-		});
+	initialize: function(attributes) {
+		this.set("fieldset", new FormFieldset({
+					name: this.get("name")
+				}));
+	},
+	addInput: function (input) {
+		this.get("fieldset").addInput(input);
+		this.trigger('change');
+	},
+	renderTo: function(element) {
+		this.view = new FormView({model: this, element: element});
+		this.view.render();
 	}
-	});
+});
 
 /**
  * VIEWS:
@@ -304,3 +310,37 @@ var FieldsetCollection = Backbone.Collection.extend({ model: FormInput });
 		"keyup input" : "update_model"
 	}
     });
+
+var fieldsetView = Backbone.View.extend({
+	model: FormFieldset,
+	tagName: 'fieldset',
+	initialize: function(attributes) {
+		$(attributes.element).append(this.el);
+		attributes.model.on('change', this.render, this);
+	},
+	render: function() {
+		this.$el.html('');
+		this.$el.html('<legend>' + this.model.get('name') + '</legend>');
+		var render_to = this.el;
+		this.model.get('collection').each(function(input, var2, var3) {
+			input.renderTo(render_to);		
+		});
+	}
+});
+
+
+var FormView = Backbone.View.extend({
+	model: Form,
+	tagName: 'form',
+	initialize: function(attributes) {
+		$(attributes.element).append(this.el);
+		attributes.model.on('change', this.render, this);
+	},
+	render: function() {
+		this.$el.attr("action", this.model.get("action"));
+		this.$el.html('');
+		this.model.get('fieldset').renderTo(this.el);
+	}
+});
+
+
