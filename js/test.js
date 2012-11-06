@@ -282,3 +282,15 @@ module( "wizard tests", {
 	var wizard = new FormWizard({"form": form});
 	equal( wizard.numberOfSteps(), 2, "Should be 2 steps in this wizard");
     });
+    test( "wizard has one active fieldset", function() {
+	var wizard = new FormWizard({"form": form});
+	wizard.renderTo(test_element_for_text);
+	equal( wizard.getActiveFieldSet(), description, "The active fieldset should default to the first fieldset");
+    });
+    test( "wizard starts with first fieldset visible, rest hidden", function() {
+	var wizard = new FormWizard({"form": form});
+
+	wizard.renderTo(test_element_for_text);
+	equal( description.view.$el.is(":visible"), true, "description fieldset should be visible");
+	equal( contact.view.$el.is(":visible"), false, "contact fieldset should not be visible");
+    });

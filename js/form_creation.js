@@ -1,8 +1,49 @@
+/***
+ * DEBUGGING CODE
+ *
+ * **/
+render_counts = {}; //keep track of the number of times render gets called
+
+function showCallStack(){
+	var f=showCallStack,result="Call stack:\n";
+
+	while((f=f.caller)!==null){
+		var sFunctionName = f.toString().match(/^function (\w+)\(/)
+		sFunctionName = (sFunctionName) ? sFunctionName[1] : 'anonymous function';
+		result += sFunctionName;
+		result += getArguments(f.toString(), f.arguments);
+		result += "\n";
+	}
+	return result;
+}
+
+
+function getArguments(sFunction, a) {
+	var i = sFunction.indexOf(' ');
+	var ii = sFunction.indexOf('(');
+	var iii = sFunction.indexOf(')');
+	var aArgs = sFunction.substr(ii+1, iii-ii-1).split(',')
+	var sArgs = '';
+	for(var i=0; i<a.length; i++) {
+		var q = ('string' == typeof a[i]) ? '"' : '';
+		sArgs+=((i>0) ? ', ' : '')+(typeof a[i])+' '+aArgs[i]+':'+q+a[i]+q+'';
+	}
+	return '('+sArgs+')';
+}
+
 /**
  * MODELS: Here we are defining all the models in the MVC structure
  * ----------------------------------------------------------------
  * 
  */
+
+function increment_render_counts(name) {
+	if (name in render_counts) {
+		render_counts[name]++;
+	} else {
+		render_counts[name] = 1;
+	}
+}
 var NullInputModel = Backbone.Model.extend({
 			defaults: {} 
 		});
@@ -174,6 +215,9 @@ var Form = Backbone.Model.extend({
 	getFieldSets: function () {
 		return this.get("fieldset").get("collection");
 	},
+	getFieldSet: function (index) {
+		return this.getFieldSets().at(index);
+	},
 	hideAll: function () {
 		this.getFieldSets().each( function(fieldset) { fieldset.set("hidden", true); } );
 	},
@@ -191,12 +235,39 @@ var FormWizard = Backbone.Model.extend({
 		element: null,
 		form: null
 	},
+	initialize: function(attributes) {
+		this.set('activeFieldSetIndex', 0);
+	},
 	renderTo: function(element) {
 		this.set('view', new FormWizardView({model: this, element: element}));
 		this.get('view').render();
+		this.activateCurrentFieldSet();
 	},
 	numberOfSteps: function() {
 		return this.get('form').getFieldSets().length;
+	},
+	getActiveFieldSet: function() {
+		var index = this.get('activeFieldSetIndex');	
+		return this.get('form').getFieldSet(index);
+	},
+	activateCurrentFieldSet: function() {
+		this.get('form').showOneFieldset(
+							this.get('activeFieldSetIndex')
+						);
+	},
+	incrementStep: function() {
+		this.set('activeFieldSetIndex', this.get('activeFieldSetIndex') + 1);
+	},
+	decrementStep: function() {
+		this.set('activeFieldSetIndex', this.get('activeFieldSetIndex') - 1);
+	},
+	forward: function() {
+		this.incrementStep();
+		this.activateCurrentFieldSet();
+	},
+	previous: function() {
+		this.decrementStep();
+		this.activateCurrentFieldSet();
 	}
 });
 
@@ -217,6 +288,10 @@ var templates = {
 			"select":  function (data) { 
 					var buffer = (option_templates["select"](data['options'], data['value']));
 					buffer = '<div class="select_input" id="container_for_<%=id%>"><select name="<%=name %>" id="select_<%=id %>">\n' + buffer + '</select></div> \n';
+					return (_.template(buffer))(data);
+				},
+			"wizard": function(data) {
+					var buffer = '<div id="<%=id%>" class="wizard-form-container"></div><input type="button" class="wizard-previous-button" value="<%=previous_button_text%>"></input><input type="button" class="wizard-forward-button" value="<%=next_button_text%>"></input>';
 					return (_.template(buffer))(data);
 				},
 			"checkbox":  function(data) {	
@@ -295,7 +370,8 @@ var option_templates = {
 		this.input_selector = 'input';
 	  }
 	},
-        render: function() {
+        render: function(var1, var2, var3) {
+		increment_render_counts('input_view_' + '_' + var1 + '_' + var2 + '_' + var3);
             var markup = this.template({
                                         id: this.model.get('id'),
                                         value: this.model.get('value'),
@@ -361,6 +437,7 @@ var fieldsetView = Backbone.View.extend({
 		attributes.model.on('change', this.render, this);
 	},
 	render: function() {
+		increment_render_counts('fieldset_view');
 		this.$el.html('');
 		this.$el.attr('id', 'fieldset_' + this.model.cid);
 		this.$el.html('<legend>' + this.model.get('name') + '</legend>');
@@ -385,6 +462,7 @@ var FormView = Backbone.View.extend({
 		attributes.model.on('change', this.render, this);
 	},
 	render: function() {
+		increment_render_counts('form_view');
 		this.$el.attr("action", this.model.get("action"));
 		this.$el.html('');
 		this.model.get('fieldset').renderTo(this.el);
@@ -400,8 +478,24 @@ var FormWizardView = Backbone.View.extend({
 		attributes.model.on('change', this.render, this);
 	},
 	render: function() {
-		this.$el.html('<div id="wizard_form_' + this.model.cid + '"></div><input type="button" class="wizard-forward-button" value="Forward"></input>');
-		this.model.get('form').renderTo($('#wizard_form_' + this.model.cid));
+		increment_render_counts('wizard_view');
+		var id = 'wizard_form_' + this.model.cid;
+		this.$el.html( templates.wizard( { "id" : id , 
+							"next_button_text" : "Next" ,
+							"previous_button_text" : "Previous" 
+						} ) );
+		this.model.get('form').renderTo($('#' + id));
+	},
+	events: {
+                "click .wizard-forward-button" : "forward_click",
+                "click .wizard-previous-button" : "previous_click",
+        },
+	forward_click: function(eventObject ) {
+		this.model.forward();
+	},
+	previous_click: function(eventObject ) {
+		this.model.previous();
 	}
+
 });
 
