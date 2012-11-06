@@ -38,18 +38,19 @@
 					"l": "Large"
 					}  
 				});
-	var description = new FormFieldset({name: 'Description'});
+	description = new FormFieldset({name: 'Description'});
 	description.addInput([first_name, last_name, nice_person, size]);
-	var form = new Form({action: "google.com"});
+	form = new Form({action: "google.com"});
 	form.addInput(description);
 
 	address = new FormInput({name: "Address"});
 	phone = new FormInput({name: "Phone"});
-	var contact = new FormFieldset({name: 'Contact Info'});
+	contact = new FormFieldset({name: 'Contact Info'});
 	contact.addInput([address, phone]);
 	form.addInput(contact);
-	var wiz = new FormWizard({"form": form});
+	wiz = new FormWizard({"form": form});
 	wiz.renderTo($('#playground'));
+	phone.on('change', function(var1) {console.log(var1); } );
   } );
 
   </script>

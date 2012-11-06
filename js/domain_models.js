@@ -126,11 +126,20 @@ var FormFieldset = Backbone.Model.extend({
 		}		
 	},
 	addInput: function(input) {
+		var this_handle = this;
+		$(input).each( function( index, obj ) {
+					if ( 'on' in obj) {
+						obj.on('change', this_handle.trigger_change, this_handle);
+					}
+				} );
 		this.get('collection').add(input);
 	}, 
 	renderTo: function(element) {	
 		this.view = new fieldsetView({model: this, element: element});
 		this.view.render();
+	},
+	trigger_change: function(changedObject, changes) {
+		this.trigger('inputUpdated', changedObject, changes);
 	}
 });
 
@@ -149,12 +158,31 @@ var Form = Backbone.Model.extend({
 				}));
 	},
 	addInput: function (input) {
+		var this_handle = this;
+		$(input).each( function( index, obj ) {
+					if ( 'on' in obj) {
+						obj.on('inputUpdated', this_handle.trigger_change, this_handle);
+					}
+				} );
 		this.get("fieldset").addInput(input);
 		this.trigger('change');
 	},
 	renderTo: function(element) {
 		this.view = new FormView({model: this, element: element});
 		this.view.render();
+	},
+	getFieldSets: function () {
+		return this.get("fieldset").get("collection");
+	},
+	hideAll: function () {
+		this.getFieldSets().each( function(fieldset) { fieldset.set("hidden", true); } );
+	},
+	showOneFieldset: function (index) {
+		this.hideAll();
+		this.getFieldSets().at(index).set("hidden", false);
+	},
+	trigger_change: function(changedObject, changes) {
+		this.trigger('inputUpdated', changedObject, changes);
 	}
 });
 
@@ -166,6 +194,9 @@ var FormWizard = Backbone.Model.extend({
 	renderTo: function(element) {
 		this.set('view', new FormWizardView({model: this, element: element}));
 		this.get('view').render();
+	},
+	numberOfSteps: function() {
+		return this.get('form').getFieldSets().length;
 	}
 });
 
@@ -337,6 +368,11 @@ var fieldsetView = Backbone.View.extend({
 		this.model.get('collection').each(function(input, var2, var3) {
 			input.renderTo(render_to);		
 		});
+		if (this.model.get('hidden') == true) {
+			this.$el.hide();
+		} else {
+			this.$el.show();
+		}
 	}
 });
 
