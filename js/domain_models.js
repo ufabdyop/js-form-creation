@@ -115,6 +115,60 @@ var FormInput = Backbone.Model.extend({
 	}
 });
 
+var FormFieldset = Backbone.Model.extend({
+	defaults: {
+		name: null,
+		collection: null
+		},
+	initialize: function(attributes) {
+		if (attributes.collection == null) {
+			this.set('collection', new FormInputCollection());
+		}		
+	},
+	addInput: function(input) {
+		this.get('collection').add(input);
+	}, 
+	renderTo: function(element) {	
+		this.view = new fieldsetView({model: this, element: element});
+		this.view.render();
+	}
+});
+
+var FormInputCollection = Backbone.Collection.extend({ model: FormInput });
+
+var Form = Backbone.Model.extend({
+	defaults: {
+		action: null,
+		name: "",
+		method: "post",
+		wizard_style: false
+	},
+	initialize: function(attributes) {
+		this.set("fieldset", new FormFieldset({
+					name: this.get("name")
+				}));
+	},
+	addInput: function (input) {
+		this.get("fieldset").addInput(input);
+		this.trigger('change');
+	},
+	renderTo: function(element) {
+		this.view = new FormView({model: this, element: element});
+		this.view.render();
+	}
+});
+
+var FormWizard = Backbone.Model.extend({
+	defaults: {
+		element: null,
+		form: null
+	},
+	renderTo: function(element) {
+		this.set('view', new FormWizardView({model: this, element: element}));
+		this.get('view').render();
+	}
+});
+
 /**
  * TEMPLATES:
  * ---------------------------
@@ -178,49 +232,6 @@ var option_templates = {
 					return buffer;
 				}  
 	}
-
-var FormFieldset = Backbone.Model.extend({
-	defaults: {
-		name: null,
-		collection: null
-		},
-	initialize: function(attributes) {
-		if (attributes.collection == null) {
-			this.set('collection', new FormInputCollection());
-		}		
-	},
-	addInput: function(input) {
-		this.get('collection').add(input);
-	}, 
-	renderTo: function(element) {	
-		this.view = new fieldsetView({model: this, element: element});
-		this.view.render();
-	}
-});
-
-var FormInputCollection = Backbone.Collection.extend({ model: FormInput });
-
-var Form = Backbone.Model.extend({
-	defaults: {
-		action: null,
-		name: "",
-		method: "post",
-		wizard_style: false
-	},
-	initialize: function(attributes) {
-		this.set("fieldset", new FormFieldset({
-					name: this.get("name")
-				}));
-	},
-	addInput: function (input) {
-		this.get("fieldset").addInput(input);
-		this.trigger('change');
-	},
-	renderTo: function(element) {
-		this.view = new FormView({model: this, element: element});
-		this.view.render();
-	}
-});
 
 /**
  * VIEWS:
@@ -320,6 +331,7 @@ var fieldsetView = Backbone.View.extend({
 	},
 	render: function() {
 		this.$el.html('');
+		this.$el.attr('id', 'fieldset_' + this.model.cid);
 		this.$el.html('<legend>' + this.model.get('name') + '</legend>');
 		var render_to = this.el;
 		this.model.get('collection').each(function(input, var2, var3) {
@@ -343,4 +355,17 @@ var FormView = Backbone.View.extend({
 	}
 });
 
+var FormWizardView = Backbone.View.extend({
+	model: FormWizard,
+	tagName: 'div',
+	initialize: function(attributes) {
+		this.el = attributes.element;
+		this.$el = $(this.el);
+		attributes.model.on('change', this.render, this);
+	},
+	render: function() {
+		this.$el.html('<div id="wizard_form_' + this.model.cid + '"></div><input type="button" class="wizard-forward-button" value="Forward"></input>');
+		this.model.get('form').renderTo($('#wizard_form_' + this.model.cid));
+	}
+});
 

@@ -217,7 +217,34 @@ module( "fieldset", {
 	test_form.renderTo('#test_element_for_text');
 	equal(true, true, "No exception was raised");	
     });
+module( "wizard tests", {
+  setup: function() {
+	test_element_for_text = $('<div id="test_element_for_text"></div>');
+	$('#playground').append(test_element_for_text);
+	first_name = new FormInput({name: 'First name'});
+	last_name = new FormInput({name: 'Last name'});
+	description = new FormFieldset({name: "Description"});
+	description.addInput([first_name, last_name]);
+	phone = new FormInput({name: 'Phone Number'});
+	address = new FormInput({name: 'Address'});
+	contact = new FormFieldset({name: "contact"});
+	contact.addInput([address, phone]);
+	form = new Form();
+	form.addInput([description, contact]);
+  }, teardown: function() {
+	test_element_for_text.remove();
+  }
+});
     test( "wizard can use a form for gathering input", function() {
+	var wizard = new FormWizard(form);
+	equal(true, true, "No exception was raised");	
+    });
+    test( "wizard renders a forward button", function() {
+	var wizard = new FormWizard({"form": form});
+	wizard.renderTo(test_element_for_text);
+	equal( wizard.get('view').$el.find(".wizard-forward-button").length,
+		1,
+		"Found the forward button element");
     });
   </script>
         
