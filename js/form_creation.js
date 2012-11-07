@@ -3,64 +3,45 @@
  *
  * **/
 render_counts = {}; //keep track of the number of times render gets called
+render_objects = []; //keep track of the number of times render gets called
 
-function showCallStack(){
-	var f=showCallStack,result="Call stack:\n";
-
-	while((f=f.caller)!==null){
-		var sFunctionName = f.toString().match(/^function (\w+)\(/)
-		sFunctionName = (sFunctionName) ? sFunctionName[1] : 'anonymous function';
-		result += sFunctionName;
-		result += getArguments(f.toString(), f.arguments);
-		result += "\n";
+function increment_render_counts(name, v1, v2, v3) {
+	if (name in render_counts) {
+		render_counts[name]++;
+	} else {
+		render_counts[name] = 1;
 	}
-	return result;
+	if (v1) {
+		render_objects.push([v1.get('name'), v2, v3]);
+		console.log([v1.get('name'), v2, v3]);
+	}
 }
 
-
-function getArguments(sFunction, a) {
-	var i = sFunction.indexOf(' ');
-	var ii = sFunction.indexOf('(');
-	var iii = sFunction.indexOf(')');
-	var aArgs = sFunction.substr(ii+1, iii-ii-1).split(',')
-	var sArgs = '';
-	for(var i=0; i<a.length; i++) {
-		var q = ('string' == typeof a[i]) ? '"' : '';
-		sArgs+=((i>0) ? ', ' : '')+(typeof a[i])+' '+aArgs[i]+':'+q+a[i]+q+'';
-	}
-	return '('+sArgs+')';
-}
 
 /**
  * MODELS: Here we are defining all the models in the MVC structure
  * ----------------------------------------------------------------
  * 
  */
-
-function increment_render_counts(name) {
-	if (name in render_counts) {
-		render_counts[name]++;
-	} else {
-		render_counts[name] = 1;
-	}
-}
 var NullInputModel = Backbone.Model.extend({
-			defaults: {} 
-		});
+		defaults: {}
+});
+
+//a simple wrapper type of object that always shows the dependent input
 
 //a simple wrapper type of object that always shows the dependent input
 var NullFormCondition = Backbone.Model.extend({
-			defaults: { "field" : new NullInputModel() } ,
-			evaluate: function(model, successfulValidation, unsuccessfulValidation) {
-				return true;
-			}
-		});
+	defaults: { "field" : new NullInputModel() } ,
+	evaluate: function(model, successfulValidation, unsuccessfulValidation) {
+		return true;
+	}
+});
 
 var FormCondition = Backbone.Model.extend({
 	defaults: {
-		"field": new NullInputModel(),    //a FormInput
+		"field": new NullInputModel(), //a FormInput
 		"operator": "==", // '==', '!=', '<', '>', etc.
-		"value": null     //probably a string
+		"value": null //probably a string
 	},
 	evaluate: function(model, successfulValidation, unsuccessfulValidation) {
 		var sub = this.get('field').get('value');
@@ -73,23 +54,19 @@ var FormCondition = Backbone.Model.extend({
 		} else {
 			unsuccessfulValidation(model);
 		}
-		return should_be_shown;	
+		return should_be_shown;
 	}
 });
 
-var FormInputIdIterator = 1;
 /**
  * form input
  */
 var FormInput = Backbone.Model.extend({
 	defaults: {
 		"id": false,
-		"long_label": false,
 		"type": 'text',
 		"name": '',
 		"label": '',
-		"form": null,
-		"fieldset": null,
 		"value": '',
 		"options": {},
 		"default_value": '', 
@@ -108,17 +85,17 @@ var FormInput = Backbone.Model.extend({
 			this.set('dependencyCondition', new FormCondition(condition));
 		}
 		if (attributes.id == false) {
-			this.set('id', 'FormInputField_' + FormInputIdIterator++);
+			this.set('id', 'FormInputField_' + this.cid);
 		}
 	},
 	renderTo: function(element) {
-		this.set('view', new input_view({model: this, element: element}));
-		this.get('dependencyCondition').get('field').on('change', this.isDependencySatisfied, this);
+		this.set('view', new FormInputView({model: this, element: element}));
 		this.initializeCallbacks();
 		this.isDependencySatisfied();
 	},
 	//if callbacks are not explicitly set for dependencies, use some reasonable defaults
 	initializeCallbacks: function() {
+		this.get('dependencyCondition').get('field').on('change', this.isDependencySatisfied, this);
 		if (this.get('dependencySatisfiedCallback') == null) {
 			if (this.get('disabled') ) {
 				this.set('dependencySatisfiedCallback', this.enable);
@@ -343,53 +320,51 @@ var option_templates = {
  * VIEWS:
  * ------------------------------------------------
  */
-    var input_view = Backbone.View.extend({
-        model: FormInput,
-        tagName: 'div',
-        template: null,
-        input_selector: 'input',
-        initialize: function(attributes) {
-          this.model.on('change', this.render, this);
-
-	  var model_type = this.model.get('type');
-	  this.template = templates[model_type];
-
-          $(attributes.element).append(this.el);
-          this.render();  
-	  this.set_input_selector();
-        },
-	set_input_selector: function() {
-	  var model_type = this.model.get('type');
-	  if (model_type == 'radio') {
-		this.input_selector = 'input[checked=checked]';
-	  } else if (model_type == 'select') {
-		this.input_selector = 'select';
-	  } else if(model_type == 'checkbox') {	
-		this.input_selector = 'input:checked';
-	  } else {
-		this.input_selector = 'input';
-	  }
+var FormInputView = Backbone.View.extend({
+	model: FormInput,
+	tagName: 'div',
+	template: null,
+	input_selector: 'input',
+	initialize: function(attributes) {
+		this.model.on('change:value change:hidden change:disabled', this.render, this);
+		var model_type = this.model.get('type');
+		this.template = templates[model_type];
+		$(attributes.element).append(this.el);
+		this.render();
+		this.set_input_selector();
 	},
-        render: function(var1, var2, var3) {
-		increment_render_counts('input_view_' + '_' + var1 + '_' + var2 + '_' + var3);
-            var markup = this.template({
-                                        id: this.model.get('id'),
-                                        value: this.model.get('value'),
-                                        options: this.model.get('options'),
-                                        name: this.model.get('name')
-                                    });
-	    this.$el.html(markup);
-	    if (this.model.get('hidden')) {
-		this.hide();
-	    } else {
-		this.show();
-	    }
-	    if (this.model.get('disabled')) {
-		this.lock();
-	    } else {	
-		this.unlock();
-	    }
-        },
+	set_input_selector: function() {
+		var model_type = this.model.get('type');
+		if (model_type == 'radio') {
+			this.input_selector = 'input[checked=checked]';
+		} else if (model_type == 'select') {
+			this.input_selector = 'select';
+		} else if(model_type == 'checkbox') {
+			this.input_selector = 'input:checked';
+		} else {
+			this.input_selector = 'input';
+		}
+	},
+	render: function(var1, var2, var3) {
+		increment_render_counts('FormInputView' , var1 , var2 , var3);
+		var markup = this.template(	{
+										id: this.model.get('id'),
+										value: this.model.get('value'),
+										options: this.model.get('options'),
+										name: this.model.get('name')
+									});
+		this.$el.html(markup);
+		if (this.model.get('hidden')) {
+			this.hide();
+		} else {
+			this.show();
+		}
+		if (this.model.get('disabled')) {
+			this.lock();
+		} else {	
+			this.unlock();
+		}
+	},
 	$input: function() {
 		return $(this.input());
 	},
@@ -418,16 +393,16 @@ var option_templates = {
 		this.$input().removeAttr('disabled');
 	},
 	update_model: function() {
-		this.model.off('change', this.render, this);
+		this.model.off('change:value', this.render, this);
 		this.model.set('value', this.value());
-		this.model.on('change', this.render, this);
+		this.model.on('change:value', this.render, this);
 	},
 	events: {
 		"change select" : "update_model",
 		"change input" : "update_model",
 		"keyup input" : "update_model"
 	}
-    });
+});
 
 var fieldsetView = Backbone.View.extend({
 	model: FormFieldset,
