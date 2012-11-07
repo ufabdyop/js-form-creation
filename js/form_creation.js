@@ -332,6 +332,7 @@ var FormInputView = Backbone.View.extend({
 		$(attributes.element).append(this.el);
 		this.render();
 		this.set_input_selector();
+		this.set_input_element();
 	},
 	set_input_selector: function() {
 		var model_type = this.model.get('type');
@@ -344,6 +345,16 @@ var FormInputView = Backbone.View.extend({
 		} else {
 			this.input_selector = 'input';
 		}
+	},
+	set_input_element: function() {
+		var selector = this.input_selector;
+		this.input_element = this.$el.find(selector)[0];
+	},
+	$input: function() {
+		return $(this.input());
+	},
+	input: function() {
+		return this.input_element;
 	},
 	render: function(var1, var2, var3) {
 		increment_render_counts('FormInputView' , var1 , var2 , var3);
@@ -365,16 +376,11 @@ var FormInputView = Backbone.View.extend({
 			this.unlock();
 		}
 	},
-	$input: function() {
-		return $(this.input());
-	},
-	input: function() {
-		var selector = this.input_selector;
-		return this.$el.find(selector)[0];
-	},
 	value: function() {
 		if (this.model.get('type') == 'checkbox') {
 			return this.$input().is(":checked");
+		} else if (this.model.get('type') == 'radio') {
+			return $(this.$el.find(this.input_selector)[0]).val();
 		}
 		return this.$input().val();
 	},
