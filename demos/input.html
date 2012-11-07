@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Demo</title>
+<link href="../css/basic.css" rel="stylesheet">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js" type="text/javascript"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.22/jquery-ui.min.js"></script>
+<script type="text/javascript" src="../js/underscore.js"></script>
+<script type="text/javascript" src="../js/backbone.js"></script>
+<script type="text/javascript" src="../js/form_creation.js"></script>
+</head>
+<body>
+  <div id="playground"></div>
+ <script>
+	foo = function() {
+		alert('bar');
+	}
+  $(document).ready( function() {
+	first_name = new FormInput({name: "First Name"});
+	first_name.attachTo($('#playground'));
+  } );
+
+  </script>
+        
+</body>
+</html>

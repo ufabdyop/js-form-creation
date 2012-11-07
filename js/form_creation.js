@@ -58,6 +58,27 @@ var FormCondition = Backbone.Model.extend({
 	}
 });
 
+var HtmlElement = Backbone.Model.extend({
+	defaults: {
+		"tag": "div",
+		"html": "",
+		"attributes" : {}
+	},
+	initialize: function(attributes) {
+		var internal_attributes = this.get('attributes');
+		for( var key in attributes ) {
+			internal_attributes[key] = attributes[key];
+		}
+		this.set('attributes', internal_attributes);
+	},
+	renderTo: function(element) {
+		var new_node = $('<' + this.get('tag') + '/>', 
+							this.get('attributes') );
+		new_node.html(this.get('html'));
+		$(element).append(new_node);
+	}
+});
+
 /**
  * form input
  */
@@ -88,10 +109,13 @@ var FormInput = Backbone.Model.extend({
 			this.set('id', 'FormInputField_' + this.cid);
 		}
 	},
-	renderTo: function(element) {
+	attachTo: function(element) {
 		this.set('view', new FormInputView({model: this, element: element}));
 		this.initializeCallbacks();
 		this.isDependencySatisfied();
+	},
+	render: function(element) {
+		this.get('view').render();
 	},
 	//if callbacks are not explicitly set for dependencies, use some reasonable defaults
 	initializeCallbacks: function() {
@@ -152,8 +176,10 @@ var FormFieldset = Backbone.Model.extend({
 				} );
 		this.get('collection').add(input);
 	}, 
-	renderTo: function(element) {	
+	attachTo: function(element) {	
 		this.view = new fieldsetView({model: this, element: element});
+	},
+	render: function() {	
 		this.view.render();
 	},
 	trigger_change: function(changedObject, changes) {
@@ -185,8 +211,10 @@ var Form = Backbone.Model.extend({
 		this.get("fieldset").addInput(input);
 		this.trigger('change');
 	},
-	renderTo: function(element) {
+	attachTo: function(element) {
 		this.view = new FormView({model: this, element: element});
+	},
+	render: function() {
 		this.view.render();
 	},
 	getFieldSets: function () {
@@ -215,10 +243,13 @@ var FormWizard = Backbone.Model.extend({
 	initialize: function(attributes) {
 		this.set('activeFieldSetIndex', 0);
 	},
-	renderTo: function(element) {
+	attachTo: function(element) {
 		this.set('view', new FormWizardView({model: this, element: element}));
-		this.get('view').render();
+		this.render();
 		this.activateCurrentFieldSet();
+	},
+	render: function() {
+		this.get('view').render();
 	},
 	numberOfSteps: function() {
 		return this.get('form').getFieldSets().length;
@@ -254,9 +285,9 @@ var FormWizard = Backbone.Model.extend({
  *
  * */
 var templates = { 
-			"text":  _.template('<div class="text_input" id="container_for_<%=id%>"> \n' + 
-					'<label for="text_<%=id %>"><%=name %></label><input type="text" value="<%=value%>" name="<%=name %>" id="text_<%=id %>"/> \n' +
-				'</div>\n'),
+			"text":  _.template( 
+					'<label for="text_<%=id %>"><%=name %></label><input type="text" value="<%=value%>" name="<%=name %>" id="text_<%=id %>"/> \n' 
+					),
 			"radio":  function (data) { 
 					var buffer = (option_templates["radio"](data['options'], data['value']));
 					buffer = '<div class="text_input" id="container_for_<%=id%>"> \n' + buffer + '</div> \n';
@@ -365,6 +396,7 @@ var FormInputView = Backbone.View.extend({
 										name: this.model.get('name')
 									});
 		this.$el.html(markup);
+		this.set_input_element();
 		if (this.model.get('hidden')) {
 			this.hide();
 		} else {
@@ -415,38 +447,44 @@ var fieldsetView = Backbone.View.extend({
 	tagName: 'fieldset',
 	initialize: function(attributes) {
 		$(attributes.element).append(this.el);
+		this.$el.html('<legend>' + this.model.get('name') + '</legend>');
+		this.elements_container = $('<div class="fieldset-elements"></div>');
+		this.$el.append( this.elements_container );
+		this.$el.attr('id', 'fieldset_' + this.model.cid);
+		this.attachElements();
 		attributes.model.on('change', this.render, this);
+	},
+	attachElements: function() {
+		var render_to = this.elements_container;
+		this.model.get('collection').each(function(input) {
+			input.attachTo(render_to);
+		});
 	},
 	render: function() {
 		increment_render_counts('fieldset_view');
-		this.$el.html('');
-		this.$el.attr('id', 'fieldset_' + this.model.cid);
-		this.$el.html('<legend>' + this.model.get('name') + '</legend>');
-		var render_to = this.el;
-		this.model.get('collection').each(function(input, var2, var3) {
-			input.renderTo(render_to);		
-		});
 		if (this.model.get('hidden') == true) {
 			this.$el.hide();
 		} else {
 			this.$el.show();
 		}
+		this.model.get('collection').each(function(input) {
+			input.render();
+		});
 	}
 });
-
 
 var FormView = Backbone.View.extend({
 	model: Form,
 	tagName: 'form',
 	initialize: function(attributes) {
 		$(attributes.element).append(this.el);
+		this.$el.attr("action", this.model.get("action"));
+		this.model.get('fieldset').attachTo(this.el);
 		attributes.model.on('change', this.render, this);
 	},
 	render: function() {
 		increment_render_counts('form_view');
-		this.$el.attr("action", this.model.get("action"));
-		this.$el.html('');
-		this.model.get('fieldset').renderTo(this.el);
+		this.model.get('fieldset').render();
 	}
 });
 
@@ -454,29 +492,29 @@ var FormWizardView = Backbone.View.extend({
 	model: FormWizard,
 	tagName: 'div',
 	initialize: function(attributes) {
+		var id = 'wizard_form_' + this.model.cid;
 		this.el = attributes.element;
 		this.$el = $(this.el);
-		attributes.model.on('change', this.render, this);
-	},
-	render: function() {
-		increment_render_counts('wizard_view');
-		var id = 'wizard_form_' + this.model.cid;
 		this.$el.html( templates.wizard( { "id" : id , 
 							"next_button_text" : "Next" ,
 							"previous_button_text" : "Previous" 
 						} ) );
-		this.model.get('form').renderTo($('#' + id));
+		this.model.get('form').attachTo($('#' + id));
+		attributes.model.on('change', this.render, this);
+	},
+	render: function() {
+		increment_render_counts('wizard_view');
+		this.model.get('form').render();
 	},
 	events: {
-                "click .wizard-forward-button" : "forward_click",
-                "click .wizard-previous-button" : "previous_click",
-        },
+		"click .wizard-forward-button" : "forward_click",
+		"click .wizard-previous-button" : "previous_click",
+	},
 	forward_click: function(eventObject ) {
 		this.model.forward();
 	},
 	previous_click: function(eventObject ) {
 		this.model.previous();
 	}
-
 });
 
