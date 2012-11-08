@@ -24,7 +24,7 @@ function increment_render_counts(name, v1, v2, v3) {
  * 
  */
 var NullInputModel = Backbone.Model.extend({
-		defaults: {}
+	defaults: {}
 });
 
 //a simple wrapper type of object that always shows the dependent input
@@ -228,7 +228,7 @@ var Form = Backbone.Model.extend({
 	},
 	showOneFieldset: function (index) {
 		this.hideAll();
-		this.getFieldSets().at(index).set("hidden", false);
+		this.getFieldSet(index).set("hidden", false);
 	},
 	trigger_change: function(changedObject, changes) {
 		this.trigger('inputUpdated', changedObject, changes);
@@ -255,19 +255,37 @@ var FormWizard = Backbone.Model.extend({
 		return this.get('form').getFieldSets().length;
 	},
 	getActiveFieldSet: function() {
-		var index = this.get('activeFieldSetIndex');	
+		var index = this.get('activeFieldSetIndex');
 		return this.get('form').getFieldSet(index);
 	},
 	activateCurrentFieldSet: function() {
+		var index = this.get('activeFieldSetIndex');
+		this.configureButtons();
 		this.get('form').showOneFieldset(
-							this.get('activeFieldSetIndex')
-						);
+			this.get('activeFieldSetIndex')
+		);
 	},
-	incrementStep: function() {
-		this.set('activeFieldSetIndex', this.get('activeFieldSetIndex') + 1);
+	configureButtons: function() {
+		this.get('view').middleStep();
+		this.deactivatePreviousButtonIfFirstStep();
+		this.replaceNextButtonWithFinalIfLastStep();
+	},
+	replaceNextButtonWithFinalIfLastStep: function() {
+		if (this.get('activeFieldSetIndex') >= this.numberOfSteps() - 1) {
+			this.get('view').finalStep();
+		}
+	},
+	deactivatePreviousButtonIfFirstStep: function() {
+		if (this.get('activeFieldSetIndex') == 0) {
+			this.get('view').firstStep();
+		}
+	},
+	incrementStep: function(count) {
+		if(typeof(count)==='undefined') count = 1;
+		this.set('activeFieldSetIndex', this.get('activeFieldSetIndex') + count);
 	},
 	decrementStep: function() {
-		this.set('activeFieldSetIndex', this.get('activeFieldSetIndex') - 1);
+		this.incrementStep(-1);
 	},
 	forward: function() {
 		this.incrementStep();
@@ -299,7 +317,7 @@ var templates = {
 					return (_.template(buffer))(data);
 				},
 			"wizard": function(data) {
-					var buffer = '<div id="<%=id%>" class="wizard-form-container"></div><input type="button" class="wizard-previous-button" value="<%=previous_button_text%>"></input><input type="button" class="wizard-forward-button" value="<%=next_button_text%>"></input>';
+					var buffer = '<div id="<%=id%>" class="wizard-form-container"></div><input type="button" class="wizard-previous-button" value="<%=previous_button_text%>"></input><input type="button" class="wizard-forward-button" value="<%=next_button_text%>"></input><input type="button" class="wizard-final-button" value="<%=final_button_text%>"></input>';
 					return (_.template(buffer))(data);
 				},
 			"checkbox":  function(data) {	
@@ -497,6 +515,7 @@ var FormWizardView = Backbone.View.extend({
 		this.$el = $(this.el);
 		this.$el.html( templates.wizard( { "id" : id , 
 							"next_button_text" : "Next" ,
+							"final_button_text" : "Finish" ,
 							"previous_button_text" : "Previous" 
 						} ) );
 		this.model.get('form').attachTo($('#' + id));
@@ -505,6 +524,21 @@ var FormWizardView = Backbone.View.extend({
 	render: function() {
 		increment_render_counts('wizard_view');
 		this.model.get('form').render();
+	},
+	firstStep: function() {
+		this.$el.find('.wizard-previous-button').hide();
+		this.$el.find('.wizard-forward-button').show();
+		this.$el.find('.wizard-final-button').hide();
+	},
+	middleStep: function() {
+		this.$el.find('.wizard-previous-button').show();
+		this.$el.find('.wizard-forward-button').show();
+		this.$el.find('.wizard-final-button').hide();
+	},
+	finalStep: function() {
+		this.$el.find('.wizard-previous-button').show();
+		this.$el.find('.wizard-forward-button').hide();
+		this.$el.find('.wizard-final-button').show();
 	},
 	events: {
 		"click .wizard-forward-button" : "forward_click",

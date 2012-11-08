@@ -239,23 +239,24 @@ test( "forms can render inputs", function() {
 	var visible_elements = test_form.view.$el.children().find('fieldset:visible');
 	equal(visible_elements.length, 0, "No visible elements of form");	
     });
-    test( "forms can show a single fieldset with showOneFieldset(index)", function() {
+
+test( "forms can show a single fieldset with showOneFieldset(index)", function() {
 	var test_form = new Form({name: "test form", action: "action"});
 	test_form.addInput([test_fieldset, test_fieldset2]);
 	test_form.attachTo("#test_element_for_text");
 	test_form.showOneFieldset(0);
 	var visible_elements = test_form.view.$el.children().find('fieldset:visible');
-	visible_elements.each(function(var1, var2) { console.log(var1 + ' ' + var2); });
 	equal(visible_elements.length, 1, "One single visible fieldset of form");	
-    });
-    test( "inputs changes bubble up to forms", function() {
+});
+
+test( "inputs changes bubble up to forms", function() {
 	fieldset_bubbling = false;
 	var test_form = new Form({name: "test form", action: "action"});
 	test_form.addInput([test_fieldset, test_fieldset2]);
 	test_form.on('inputUpdated', function() { fieldset_bubbling = true; } );
 	first_name.set("value", "Robert");
 	equal(fieldset_bubbling, true, "The form should have gotten a change bubble up from first_name");	
-    });
+});
 module( "wizard tests", {
   setup: function() {
 	test_element_for_text = $('<div id="test_element_for_text"></div>');
@@ -287,19 +288,55 @@ test( "wizard renders a forward button", function() {
 		"Found the forward button element");
 });
 
-    test( "wizard can return a numberOfSteps value", function() {
+test( "wizard can return a numberOfSteps value", function() {
 	var wizard = new FormWizard({"form": form});
 	equal( wizard.numberOfSteps(), 2, "Should be 2 steps in this wizard");
-    });
-    test( "wizard has one active fieldset", function() {
+});
+
+test( "wizard has one active fieldset", function() {
 	var wizard = new FormWizard({"form": form});
 	wizard.attachTo(test_element_for_text);
 	equal( wizard.getActiveFieldSet(), description, "The active fieldset should default to the first fieldset");
-    });
-    test( "wizard starts with first fieldset visible, rest hidden", function() {
-	var wizard = new FormWizard({"form": form});
+});
 
+test( "wizard starts with first fieldset visible, rest hidden", function() {
+	var wizard = new FormWizard({"form": form});
 	wizard.attachTo(test_element_for_text);
 	equal( description.view.$el.is(":visible"), true, "description fieldset should be visible");
 	equal( contact.view.$el.is(":visible"), false, "contact fieldset should not be visible");
-    });
+});
+
+test( "wizard starts with Previous not visible", function() {
+	var wizard = new FormWizard({"form": form});
+	wizard.attachTo(test_element_for_text);
+	var prev_button_visible = (wizard.get('view').$el.find(".wizard-previous-button").is(":visible"));
+	equal( prev_button_visible, false, "contact fieldset should not be visible");
+});
+
+test( "name field on FormInput model is used for the name attribute", function() {
+	fail("not implemented ");
+});
+
+test( "label field on FormInput model is used for the <label> contents", function() {
+	fail("not implemented ");
+});
+
+test( "file upload inputs should be supported", function() {
+	fail("not implemented ");
+});
+
+test( "groups of inputs should be allowed to be duplicated if created with multiple flag", function() {
+	fail("not implemented ");
+});
+
+test( "input validation should be supported", function() {
+	fail("not implemented ");
+});
+
+test( "persistence should be implemented with ability to send json", function() {
+	fail("not implemented ");
+});
+
+test( "persistence should be implemented with ability to retrieve json", function() {
+	fail("not implemented ");
+});
