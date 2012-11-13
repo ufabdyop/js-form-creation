@@ -332,6 +332,9 @@ var FormWizard = Backbone.Model.extend({
  *
  * */
 var templates = { 
+			"date":  _.template( 
+					'<label for="date_<%=id %>"><%=label %></label><input type="date" value="<%=value%>" name="<%=name %>" id="date_<%=id %>"/> \n' 
+					),
 			"text":  _.template( 
 					'<label for="text_<%=id %>"><%=label %></label><input type="text" value="<%=value%>" name="<%=name %>" id="text_<%=id %>"/> \n' 
 					),

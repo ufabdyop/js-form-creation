@@ -4,6 +4,7 @@ module( "text_input", {
 	test_element_for_text = $('<div id="test_element_for_text"></div>');
 	$("#playground").append(test_element_for_text);
 	first_name = new FormInput({name: "first_name", label: "First Name"});
+	birthday = new FormInput({name: "birthday", label: "Birthday", type: "date"});
 	first_name.attachTo(test_element_for_text);
 	pet_name = new FormInput({name: "pet_name", label: "Pet's Name"});
 	pet_type = new FormInput(
@@ -37,6 +38,12 @@ test( "Writing to a textbox will change the value of the model", function() {
 	textbox.val("My new value");
 	textbox.change();
 	equal(textbox.val(), first_name.get("value"), "The input should now contain 'My new value'");
+});
+
+test( "Date inputs should render input elements with date type in attributes", function() {
+	birthday.attachTo(test_element_for_text);
+	var bday_view  = $(birthday.get("view").$el.find("input")[0]);
+	equal(bday_view.attr('type'), "date", "The input should have rendered date input");
 });
 
 test( "Views should return an input element on input() function call", function() {
