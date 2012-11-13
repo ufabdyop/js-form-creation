@@ -3,37 +3,65 @@ module( "text_input", {
   setup: function() {
 	test_element_for_text = $('<div id="test_element_for_text"></div>');
 	$("#playground").append(test_element_for_text);
-	first_name = new FormInput({name: "First name"});
+	first_name = new FormInput({name: "first_name", label: "First Name"});
 	first_name.attachTo(test_element_for_text);
+	pet_name = new FormInput({name: "pet_name", label: "Pet's Name"});
+	pet_type = new FormInput(
+								{	name: "pet_type", 
+									label: "Kind of Pet", type: "select", 
+									options: {
+									"cat": "Cat",
+									"dog": "Dog"
+									}
+								}
+							);
   }, teardown: function() {
 	test_element_for_text.remove();
   }
 });
-    test( "Always true", function() {
+
+test( "Always true", function() {
 	equal(true, true, "true should be true");
-    });
-    test( "We can create a container div", function() {
+});
+
+test( "We can create a container div", function() {
 	equal($("#playground").children().length, 1, "There should be 1 child of playground");
-    });
-    test( "We can create a text box", function() {
+});
+
+test( "We can create a text box", function() {
 	equal($("#playground").find("input").length, 1, "There should be 1 input as a child of playground");
-    });
-    test( "We can create a text box with a label", function() {
-	var label  = first_name.get("view").$el.find("label")[0];
-	var jq_label = $(label);
-	equal(jq_label.text(), first_name.get("name"), "The label should contain the name of the model");
-    });
-    test( "Writing to a textbox will change the value of the model", function() {
+});
+
+test( "Writing to a textbox will change the value of the model", function() {
 	var textbox  = $(first_name.get("view").$el.find("input")[0]);
 	textbox.val("My new value");
 	textbox.change();
 	equal(textbox.val(), first_name.get("value"), "The input should now contain 'My new value'");
-    });
-    test( "Views should return an input element on input() function call", function() {
+});
+
+test( "Views should return an input element on input() function call", function() {
 	var textbox  = first_name.get("view").input();
 	equal(textbox.tagName, "INPUT", "Views should return an input element on input() function call");
-    });
-    test( "An input can be dependent on the value of another input", function() {
+});
+
+test( "label field on FormInput model is used for the <label> contents", function() {
+	equal( 
+		first_name.get("view").$el.find("label").text(),
+		"First Name",
+		"The first_name view should have a label with text: First Name" 
+		);
+});
+
+test( "groups of inputs can be duplicated (for inputs with variable number of occurences)", function() {
+	var inputGroup = new FormInputGroup({"name" : "my input group"});
+	inputGroup.createInputSet([pet_name, pet_type]);
+	inputGroup.attachTo($('#playground'));
+	equal(inputGroup.numRows(), 1, "we should have 1 row now");
+	inputGroup.addRow();
+	equal(inputGroup.numRows(), 2, "we should have 2 rows now");
+});
+
+test( "An input can be dependent on the value of another input", function() {
 	var last_name = new FormInput({	"name": "Last name", 
 					"dependencyCondition": {
 						"field": first_name,
@@ -48,8 +76,9 @@ module( "text_input", {
 	is_visible = $(last_name.get("view").input()).is(":visible");
 	equal(is_visible, true, "condition now met, should be visible");
 	$(last_name.get("view").input()).remove();
-    });
-    test( "An input can be disabled unless a dependency is met", function() {
+});
+
+test( "An input can be disabled unless a dependency is met", function() {
 	var last_name = new FormInput( {"name": "Last name", 
 					"disabled": true,
 					"dependencyCondition": {
@@ -68,28 +97,41 @@ module( "text_input", {
 	is_locked = $(last_name.get("view").input()).attr("disabled") == "disabled";
 	equal(is_locked, false, "condition now met, should be unlocked");
 	$(last_name.get("view").input()).remove();
-    });
-    test( "If an input model has attribute 'hidden' set to true, view should not be visible", function() {
+});
+
+test( "If an input model has attribute 'hidden' set to true, view should not be visible", function() {
 	first_name.set("hidden", true);
 	var is_visible  = first_name.get("view").$el.is(":visible");
 	equal(is_visible, false);
-    });
-    test( "If an input model has attribute 'disabled' set to true, view should be disabled", function() {
+});
+
+test( "name field on FormInput model is used for the name attribute", function() {
+	equal(
+		first_name.get("view").$el.find('[name=' + first_name.get('name') + ']').length,
+		1,
+		"found the name field"
+		);
+});
+
+test( "If an input model has attribute 'disabled' set to true, view should be disabled", function() {
 	first_name.set("disabled", true)
 	var disabled  = first_name.get("view").$input().attr("disabled") ;
 	equal(disabled, "disabled");
-    });
-    test( "Checkbox inputs are supported", function() {
+});
+
+test( "Checkbox inputs are supported", function() {
 	nice_person = new FormInput({name: "Nice Person", type: "checkbox", value: true});
 	nice_person.attachTo(test_element_for_text);
 	equal( $(nice_person.get("view").$el.find("input")[0]).attr("type"), "checkbox", "checkbox input type exists");
-    });
-    test( "Checkbox model renders checked checkbox if true", function() {
+});
+
+test( "Checkbox model renders checked checkbox if true", function() {
 	nice_person = new FormInput({name: "Nice Person", type: "checkbox", value: true});
 	nice_person.attachTo(test_element_for_text);
 	equal( $(nice_person.get("view").$el.find("input")[0]).is(":checked"), true, "checkbox model has a value of true, so should be checked");
-    });
-    test( "Radio inputs are supported", function() {
+});
+
+test( "Radio inputs are supported", function() {
 	var size = new FormInput({name: "Size", type: "radio", 
 				options: {
 					"s": "Small",
@@ -99,8 +141,9 @@ module( "text_input", {
 				});
 	size.attachTo(test_element_for_text);
 	equal( $(size.get("view").$el.find("input")[0]).attr("type"), "radio", "radio input type exists");
-    });
-    test( "Radio input changes update model values", function() {
+});
+
+test( "Radio input changes update model values", function() {
 	var size = new FormInput({name: "Size", type: "radio", 
 				options: {
 					"s": "Small",
@@ -112,8 +155,9 @@ module( "text_input", {
 	$(size.get("view").$el.find("input")[1]).attr("checked", true)
 	$(size.get("view").$el.find("input")[1]).change();
 	equal( size.get("value"), "m");
-    });
-    test( "Radio model changes, this should update the view", function() {
+});
+
+test( "Radio model changes, this should update the view", function() {
 	var size = new FormInput({name: "Size", type: "radio", 
 				options: {
 					"s": "Small",
@@ -125,8 +169,9 @@ module( "text_input", {
 	size.set("value", "m");
 	var is_medium = $(size.get("view").$el.find("input")[1]).attr("checked")
 	equal( is_medium, "checked" );
-    });
-    test( "SELECT with OPTIONS is supported", function() {
+});
+
+test( "SELECT with OPTIONS is supported", function() {
 	var size = new FormInput({name: "Size", type: "select", 
 				options: {
 					"s": "Small",
@@ -136,8 +181,9 @@ module( "text_input", {
 				});
 	size.attachTo(test_element_for_text);
 	equal( size.get("view").input().tagName, "SELECT");
-	});
-    test( "select changes update model values", function() {
+});
+
+test( "select changes update model values", function() {
 	var size = new FormInput({name: "Size", type: "select", 
 				options: {
 					"s": "Small",
@@ -149,8 +195,9 @@ module( "text_input", {
 	$(size.get("view").$el.find("option")[1]).attr("selected", true)
 	$(size.get("view").$el.find("select")[0]).change();
 	equal( size.get("value"), "m");
-    });
-    test( "when select model changes, the view updates", function() {
+});
+
+test( "when select model changes, the view updates", function() {
 	var size = new FormInput({name: "Size", type: "select", 
 				options: {
 					"s": "Small",
@@ -162,7 +209,8 @@ module( "text_input", {
 	size.set("value", "m");
 	var selected = $(size.get("view").$el.find("option")[1]).attr("selected")
 	equal( selected, "selected");
-    });
+});
+
 module( "fieldset", {
   setup: function() {
 	test_element_for_text = $('<div id="test_element_for_text"></div>');
@@ -173,20 +221,21 @@ module( "fieldset", {
 	test_element_for_text.remove();
   }
 });
+
 test( "fieldsets exist", function() {
-	var test_fieldset = new FormFieldset({name: "test field set"});
+	var test_fieldset = new FormFieldSet({name: "test field set"});
 	equal(true, true, "No exception was raised");	
 });
 
 test( "fieldsets can contain inputs", function() {
-	var test_fieldset = new FormFieldset({name: "test field set"});
+	var test_fieldset = new FormFieldSet({name: "test field set"});
 	test_fieldset.addInput(first_name);
 	equal(true, true, "No exception was raised");	
 });
 
 test( "inputs changes bubble up to fieldsets", function() {
 	fieldset_bubbling = false;
-	var test_fieldset = new FormFieldset({name: "test field set"});
+	var test_fieldset = new FormFieldSet({name: "test field set"});
 	test_fieldset.addInput(first_name);
 	test_fieldset.on('inputUpdated', function() { fieldset_bubbling = true; } );
 	first_name.set("value", "Robert");
@@ -194,14 +243,14 @@ test( "inputs changes bubble up to fieldsets", function() {
 });
 
 test( "fieldsets can render inputs", function() {
-	var test_fieldset = new FormFieldset({name: "test field set"});
+	var test_fieldset = new FormFieldSet({name: "test field set"});
 	test_fieldset.addInput(first_name);
 	test_fieldset.attachTo("#test_element_for_text");
 	equal(true, true, "No exception was raised");	
 });
 
 test( "fieldsets can hide their views if set('hidden', true) is called", function() {
-	var test_fieldset = new FormFieldset({name: "test field set"});
+	var test_fieldset = new FormFieldSet({name: "test field set"});
 	test_fieldset.addInput(first_name);
 	test_fieldset.attachTo("#test_element_for_text");
 	test_fieldset.set('hidden', true);
@@ -215,9 +264,9 @@ module( "Form Tests", {
 	$("#playground").append(test_element_for_text);
 	first_name = new FormInput({name: "First name"});
 	last_name = new FormInput({name: "Last name"});
-	test_fieldset = new FormFieldset({name: "test field set"});
+	test_fieldset = new FormFieldSet({name: "test field set"});
 	test_fieldset.addInput(first_name);
-	test_fieldset2 = new FormFieldset({name: "test field set2"});
+	test_fieldset2 = new FormFieldSet({name: "test field set2"});
 	test_fieldset2.addInput(last_name);
   }, teardown: function() {
 	test_element_for_text.remove();
@@ -263,11 +312,11 @@ module( "wizard tests", {
 	$("#playground").append(test_element_for_text);
 	first_name = new FormInput({name: "First name"});
 	last_name = new FormInput({name: "Last name"});
-	description = new FormFieldset({name: "Description"});
+	description = new FormFieldSet({name: "Description"});
 	description.addInput([first_name, last_name]);
 	phone = new FormInput({name: "Phone Number"});
 	address = new FormInput({name: "Address"});
-	contact = new FormFieldset({name: "contact"});
+	contact = new FormFieldSet({name: "contact"});
 	contact.addInput([address, phone]);
 	form = new Form();
 	form.addInput([description, contact]);
@@ -313,19 +362,7 @@ test( "wizard starts with Previous not visible", function() {
 	equal( prev_button_visible, false, "contact fieldset should not be visible");
 });
 
-test( "name field on FormInput model is used for the name attribute", function() {
-	fail("not implemented ");
-});
-
-test( "label field on FormInput model is used for the <label> contents", function() {
-	fail("not implemented ");
-});
-
 test( "file upload inputs should be supported", function() {
-	fail("not implemented ");
-});
-
-test( "groups of inputs should be allowed to be duplicated if created with multiple flag", function() {
 	fail("not implemented ");
 });
 

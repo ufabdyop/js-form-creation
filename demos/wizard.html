@@ -17,15 +17,15 @@
 		alert('bar');
 	}
   $(document).ready( function() {
-	first_name = new FormInput({name: "First Name"});
-	last_name = new FormInput({name: "Last Name", "disabled" : true,
+	first_name = new FormInput({name: "first_name", label: "First Name"});
+	last_name = new FormInput({name: "last_name", label: "Last Name", "disabled" : true,
 				"dependencyCondition":  {
 					"field": first_name,
 					"operator": "==",
 					"value": "Ryan"
 					} });
-	nice_person = new FormInput({name: "Nice Person", type: "checkbox", value: true});
-	size = new FormInput({name: "Size", type: "select", 
+	nice_person = new FormInput({name: "nice_person", label: "Nice Person", type: "checkbox", value: true});
+	size = new FormInput({name: "size", label: "Size", type: "select", 
 				dependencyCondition: {	
 					"field": nice_person,
 					"operator": "==",
@@ -38,14 +38,14 @@
 					"l": "Large"
 					}  
 				});
-	description = new FormFieldset({name: 'Description'});
+	description = new FormFieldSet({name: 'Description'});
 	description.addInput([first_name, last_name, nice_person, size]);
 	form = new Form({action: "google.com"});
 	form.addInput(description);
 
-	address = new FormInput({name: "Address"});
-	phone = new FormInput({name: "Phone"});
-	contact = new FormFieldset({name: 'Contact Info'});
+	address = new FormInput({name: "address", label: "Address"});
+	phone = new FormInput({name: "phone", label: "Phone"});
+	contact = new FormFieldSet({name: 'Contact Info'});
 	contact.addInput([address, phone]);
 	form.addInput(contact);
 	wiz = new FormWizard({"form": form});

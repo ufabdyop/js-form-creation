@@ -157,7 +157,36 @@ var FormInput = Backbone.Model.extend({
 	}
 });
 
-var FormFieldset = Backbone.Model.extend({
+var FormInputGroup = Backbone.Model.extend({
+	defaults: { name: null, input_rows: [] },
+	initialize: function() {
+		this.set('rendered', false);
+	},
+	createInputSet: function(inputs) {
+		var temp_collection = new FormInputCollection(inputs);
+		this.set('input_rows', [] );
+		this.get('input_rows').push(temp_collection);
+	}, 
+	addRow: function(inputs) {
+		var last_inserted_collection = this.get('input_rows')[ this.numRows() - 1];
+		var new_collection = new FormInputCollection();
+		last_inserted_collection.each(function(input) {
+			new_collection.add(input.clone());
+		});
+		this.get('input_rows').push(new_collection);
+		this.get('view').attachRow(new_collection);
+	},
+	attachTo: function(element) {
+		this.set('view', new FormInputGroupView({"element" : element, "model" : this}));
+		this.get('view').attachElements();
+		this.set('rendered', true);
+	},
+	numRows: function() {
+		return this.get('input_rows').length;
+	}
+});
+
+var FormFieldSet = Backbone.Model.extend({
 	defaults: {
 		name: null,
 		collection: null
@@ -165,7 +194,7 @@ var FormFieldset = Backbone.Model.extend({
 	initialize: function(attributes) {
 		if (attributes.collection == null) {
 			this.set('collection', new FormInputCollection());
-		}		
+		}
 	},
 	addInput: function(input) {
 		var this_handle = this;
@@ -176,10 +205,10 @@ var FormFieldset = Backbone.Model.extend({
 				} );
 		this.get('collection').add(input);
 	}, 
-	attachTo: function(element) {	
-		this.view = new fieldsetView({model: this, element: element});
+	attachTo: function(element) {
+		this.view = new FieldSetView({model: this, element: element});
 	},
-	render: function() {	
+	render: function() {
 		this.view.render();
 	},
 	trigger_change: function(changedObject, changes) {
@@ -197,7 +226,7 @@ var Form = Backbone.Model.extend({
 		wizard_style: false
 	},
 	initialize: function(attributes) {
-		this.set("fieldset", new FormFieldset({
+		this.set("fieldset", new FormFieldSet({
 					name: this.get("name")
 				}));
 	},
@@ -304,7 +333,7 @@ var FormWizard = Backbone.Model.extend({
  * */
 var templates = { 
 			"text":  _.template( 
-					'<label for="text_<%=id %>"><%=name %></label><input type="text" value="<%=value%>" name="<%=name %>" id="text_<%=id %>"/> \n' 
+					'<label for="text_<%=id %>"><%=label %></label><input type="text" value="<%=value%>" name="<%=name %>" id="text_<%=id %>"/> \n' 
 					),
 			"radio":  function (data) { 
 					var buffer = (option_templates["radio"](data['options'], data['value']));
@@ -313,22 +342,22 @@ var templates = {
 				},
 			"select":  function (data) { 
 					var buffer = (option_templates["select"](data['options'], data['value']));
-					buffer = '<div class="select_input" id="container_for_<%=id%>"><select name="<%=name %>" id="select_<%=id %>">\n' + buffer + '</select></div> \n';
+					buffer = '<div class="select_input" id="container_for_<%=id%>"><label for="select_<%=id%>"><%=label%></label><select name="<%=name %>" id="select_<%=id %>">\n' + buffer + '</select></div> \n';
 					return (_.template(buffer))(data);
 				},
 			"wizard": function(data) {
 					var buffer = '<div id="<%=id%>" class="wizard-form-container"></div><input type="button" class="wizard-previous-button" value="<%=previous_button_text%>"></input><input type="button" class="wizard-forward-button" value="<%=next_button_text%>"></input><input type="button" class="wizard-final-button" value="<%=final_button_text%>"></input>';
 					return (_.template(buffer))(data);
 				},
-			"checkbox":  function(data) {	
+			"checkbox":  function(data) {
 				var checked_string = '';
 				if ('value' in data) {
-					if (data['value']) {	
+					if (data['value']) {
 						checked_string = ' checked';
 					}
 				}
 				var buffer = '<div class="checkbox_input" id="container_for_<%=id%>"> \n' + 
-					'<label for="checkbox_<%=id %>"><input type="checkbox" ' + checked_string + ' value="<%=value%>" name="<%=name %>" id="checkbox_<%=id %>"/><%=name %></label> \n' +
+					'<label for="checkbox_<%=id %>"><input type="checkbox" ' + checked_string + ' value="<%=value%>" name="<%=name %>" id="checkbox_<%=id %>"/><%=label %></label> \n' +
 					'</div>\n';
 				return (_.template(buffer))(data)
 			} 
@@ -411,6 +440,7 @@ var FormInputView = Backbone.View.extend({
 										id: this.model.get('id'),
 										value: this.model.get('value'),
 										options: this.model.get('options'),
+										label: this.model.get('label'),
 										name: this.model.get('name')
 									});
 		this.$el.html(markup);
@@ -422,7 +452,7 @@ var FormInputView = Backbone.View.extend({
 		}
 		if (this.model.get('disabled')) {
 			this.lock();
-		} else {	
+		} else {
 			this.unlock();
 		}
 	},
@@ -460,8 +490,8 @@ var FormInputView = Backbone.View.extend({
 	}
 });
 
-var fieldsetView = Backbone.View.extend({
-	model: FormFieldset,
+var FieldSetView = Backbone.View.extend({
+	model: FormFieldSet,
 	tagName: 'fieldset',
 	initialize: function(attributes) {
 		$(attributes.element).append(this.el);
@@ -488,6 +518,28 @@ var fieldsetView = Backbone.View.extend({
 		this.model.get('collection').each(function(input) {
 			input.render();
 		});
+	}
+});
+
+var FormInputGroupView = Backbone.View.extend({
+	model: FormInputGroup,
+	tagName: 'div',
+	initialize: function(attributes) {
+		this.el = attributes.element;
+		this.$el = $(attributes.element);
+	},
+	attachRow: function(row) {
+			var row_element = $('<div class="form-input-group-row" />');
+			this.$el.append(row_element);
+			row.each(function(input) {
+				input.attachTo(row_element);
+			});
+	},
+	attachElements: function() {
+		var rows = this.model.get('input_rows') ;
+		for (var i in rows ) {
+			this.attachRow(rows[i]);
+		}
 	}
 });
 
