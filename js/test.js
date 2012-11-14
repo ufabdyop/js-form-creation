@@ -112,6 +112,21 @@ test( "If an input model has attribute 'hidden' set to true, view should not be 
 	equal(is_visible, false);
 });
 
+test( "hidden inputs can be rendered", function() {
+	var hidden_input = new FormInput({ "name" : "hidden_test", "value" : "My hidden value" });
+	hidden_input.attachTo(test_element_for_text);
+	equal(
+		hidden_input.get("view").$el.find('[name=' + hidden_input.get('name') + ']').length,
+		1,
+		"found the hidden field"
+		);
+	equal(
+		$(hidden_input.get("view").$el.find('[name=' + hidden_input.get('name') + ']')).val(),
+		"My hidden value",
+		"confirmed the value is as expected"
+		);
+});
+
 test( "name field on FormInput model is used for the name attribute", function() {
 	equal(
 		first_name.get("view").$el.find('[name=' + first_name.get('name') + ']').length,
@@ -317,16 +332,25 @@ module( "wizard tests", {
   setup: function() {
 	test_element_for_text = $('<div id="test_element_for_text"></div>');
 	$("#playground").append(test_element_for_text);
+
+	//set up a wizard with 3 FieldSets
 	first_name = new FormInput({name: "First name"});
 	last_name = new FormInput({name: "Last name"});
 	description = new FormFieldSet({name: "Description"});
 	description.addInput([first_name, last_name]);
+
+	bogus1 = new FormInput({name: "bogus_1"});
+	bogus2 = new FormInput({name: "bogus_2"});
+	bogusFS = new FormFieldSet({name: "Bogus Fieldset"});
+	bogusFS.addInput([bogus1, bogus2]);
+
 	phone = new FormInput({name: "Phone Number"});
 	address = new FormInput({name: "Address"});
 	contact = new FormFieldSet({name: "contact"});
 	contact.addInput([address, phone]);
+
 	form = new Form();
-	form.addInput([description, contact]);
+	form.addInput([description, bogusFS, contact]);
   }, teardown: function() {
 	test_element_for_text.remove();
   }
@@ -346,7 +370,7 @@ test( "wizard renders a forward button", function() {
 
 test( "wizard can return a numberOfSteps value", function() {
 	var wizard = new FormWizard({"form": form});
-	equal( wizard.numberOfSteps(), 2, "Should be 2 steps in this wizard");
+	equal( wizard.numberOfSteps(), 3, "Should be 3 steps in this wizard");
 });
 
 test( "wizard has one active fieldset", function() {
@@ -362,7 +386,15 @@ test( "wizard starts with first fieldset visible, rest hidden", function() {
 	equal( contact.view.$el.is(":visible"), false, "contact fieldset should not be visible");
 });
 
-test( "wizard starts with Previous not visible", function() {
+/*
+test( "wizard skips fieldsets with hidden attribute", function() {
+	var wizard = new FormWizard({"form": form});
+	wizard.attachTo(test_element_for_text);
+	equal( wizard.getActiveFieldSet(), contact, "The active fieldset should now be contact because middle fieldset was hidden");
+});
+*/
+
+test( "wizard starts with Previous button not visible", function() {
 	var wizard = new FormWizard({"form": form});
 	wizard.attachTo(test_element_for_text);
 	var prev_button_visible = (wizard.get('view').$el.find(".wizard-previous-button").is(":visible"));

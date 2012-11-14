@@ -340,7 +340,7 @@ var templates = {
 					),
 			"radio":  function (data) { 
 					var buffer = (option_templates["radio"](data['options'], data['value']));
-					buffer = '<div class="radio_input" id="container_for_<%=id%>"> \n' + buffer + '</div> \n';
+					buffer = '<div class="radio_input" id="container_for_<%=id%>"><label class="radio"><%=label %></label> \n' + buffer + '</div> \n';
 					return (_.template(buffer))(data);
 				},
 			"select":  function (data) { 
@@ -419,7 +419,7 @@ var FormInputView = Backbone.View.extend({
 	set_input_selector: function() {
 		var model_type = this.model.get('type');
 		if (model_type == 'radio') {
-			this.input_selector = 'input[checked=checked]';
+			this.input_selector = 'input[checked]';
 		} else if (model_type == 'select') {
 			this.input_selector = 'select';
 		} else if(model_type == 'checkbox') {
