@@ -340,7 +340,7 @@ var templates = {
 					),
 			"radio":  function (data) { 
 					var buffer = (option_templates["radio"](data['options'], data['value']));
-					buffer = '<div class="text_input" id="container_for_<%=id%>"> \n' + buffer + '</div> \n';
+					buffer = '<div class="radio_input" id="container_for_<%=id%>"> \n' + buffer + '</div> \n';
 					return (_.template(buffer))(data);
 				},
 			"select":  function (data) { 
@@ -390,7 +390,7 @@ var option_templates = {
 						if (value == val) {
 							selected_text = ' checked';
 						}
-						buffer += '<input type="radio" value="' + value + '" name="<%=name %>" id="radio_<%=id %>_' + iterator + '"' + selected_text + '/><label for="radio_<%=id %>_' + iterator + '">' + options[value] + '</label> \n'
+						buffer += '<label for="radio_<%=id %>_' + iterator + '"><input type="radio" value="' + value + '" name="<%=name %>" id="radio_<%=id %>_' + iterator + '"' + selected_text + '/>' + options[value] + '</label> \n'
 						iterator++;
 					}
 					return buffer;
@@ -411,6 +411,7 @@ var FormInputView = Backbone.View.extend({
 		var model_type = this.model.get('type');
 		this.template = templates[model_type];
 		$(attributes.element).append(this.el);
+		this.$el.addClass("FormInputView");
 		this.render();
 		this.set_input_selector();
 		this.set_input_element();
@@ -422,7 +423,7 @@ var FormInputView = Backbone.View.extend({
 		} else if (model_type == 'select') {
 			this.input_selector = 'select';
 		} else if(model_type == 'checkbox') {
-			this.input_selector = 'input:checked';
+			this.input_selector = 'input';
 		} else {
 			this.input_selector = 'input';
 		}
